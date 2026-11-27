@@ -9,8 +9,8 @@ import kotlinx.serialization.json.put
 
 /**
  * Lyricify. The title/artist pair is resolved to an ISRC through credits.fm, then the lyric
- * document is fetched from api.lyricify.app. The API answered 403 to requests without the
- * official client signature, so this provider is BLOCKED.
+ * document is fetched from api.lyricify.app. credits.fm expects the title under `name` (not
+ * `title`); with the wrong key it answers 400 and no ISRC is ever found.
  */
 internal class LyricifySource : LyricsSource {
 
@@ -54,11 +54,19 @@ internal class LyricifySource : LyricsSource {
         val base = settings?.getString(KEY_CREDITS)?.trim().orEmpty().ifEmpty { CREDITS }
         throttle.await()
         val payload = buildJsonObject {
-            put("title", track.title)
+            put("name", track.title)
             put("artist", track.query().artist)
         }
         val body = runCatching {
-            Http.postJson(base, payload.toString(), mapOf("Accept" to "application/json"))
+            Http.postJson(
+                base,
+                payload.toString(),
+                mapOf(
+                    "Accept" to "application/json",
+                    "Accept-Encoding" to "identity",
+                    "User-Agent" to CHROME_UA,
+                ),
+            )
         }.getOrNull() ?: return null
         return runCatching { Http.json(body).obj()?.str("isrc") }.getOrNull()
     }
@@ -67,6 +75,9 @@ internal class LyricifySource : LyricsSource {
         const val KEY_CREDITS = "credits_endpoint"
         private const val API = "https://api.lyricify.app/lyrics/get/mobile/new"
         private const val CREDITS = "https://api.credits.fm/v1/resolve/track"
+        private const val CHROME_UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
 
         fun settings(): List<Setting> = listOf(
             dev.brahmkshatriya.echo.common.settings.SettingTextInput(
