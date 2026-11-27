@@ -1,6 +1,6 @@
 # Lyricify lyrics for Echo
 
-> **Status: BLOCKED.** The upstream could not be used from the audit environment (see the compatibility matrix). The real request code and offline tests are included; the extension fails soft instead of returning placeholder lyrics.
+> **Status: PARTLY BLOCKED.** The ISRC lookup through credits.fm works, but api.lyricify.app answers HTTP 403, so lyrics do not load. The extension fails soft instead of returning placeholder lyrics.
 
 An independently installable [Echo](https://github.com/brahmkshatriya/echo) lyrics extension.
 One provider per repository, built on Echo's official `LyricsClient` API.
